@@ -1,6 +1,6 @@
 console.log("Content script loaded");
 
-const maxLength = 10000;
+const maxLength = 1000;
 
 let cryptoKey = null;
 let protectionEnabled = true;

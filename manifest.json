@@ -5,7 +5,8 @@
   "description": "Silently alters copied text to help maintain exam integrity.",
   "permissions": [
     "activeTab",
-    "clipboardWrite"
+    "clipboardWrite",
+    "storage"
   ],
   "background": {
     "service_worker": "background.js"

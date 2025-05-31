@@ -1,6 +1,7 @@
 const maxLength = 10000;
 
 let cryptoKey = null;
+let protectionEnabled = true;
 
 async function generateCryptoKey() {
   cryptoKey = await crypto.subtle.generateKey(
@@ -15,7 +16,10 @@ async function generateCryptoKey() {
   console.log("Crypto key generated");
 }
 
+const cryptoPromise = generateCryptoKey();
+
 async function encryptData(plaintext) {
+  await cryptoPromise;
   if (!cryptoKey) {
     throw new Error("Crypto key not generated");
   }
@@ -43,18 +47,32 @@ async function encryptData(plaintext) {
   return btoa(String.fromCharCode(...combinedArray)); // expands the combined array into flat form like [1 2 3 ] to 1 2 3 // convert to base64 string for storage readable text
 }
 
-generateCryptoKey();
+chrome.storage.onChanged.addListener((changes,area) => {
+  if(area === "local" && changes.protectionEnabled) {
+    protectionEnabled = changes.protectionEnabled.newValue;
+
+  }
+})
+
+chrome.storage.local.get("protectionEnabled", (data) => {
+  protectionEnabled = data.protectionEnabled !== false; // default to true if not set
+});
+
+
 
 document.addEventListener("copy", async (e) => {
   const selectedText = window.getSelection().toString();
-
+  if(!protectionEnabled) {
+    // console.log("Protection is disabled, copying text without encryption");
+    return; // If protection is disabled, allow normal copy
+  }
   if (!selectedText) return;
 
   if (!cryptoKey) return;
 
   if (selectedText.length > maxLength) {
     e.preventDefault();
-    e.clipboardData.setData("text", "");
+    e.clipboardData.setData("text/plain", "");
     console.warn("Copy blocked: selected text too large");
     return;
   }
@@ -63,7 +81,7 @@ document.addEventListener("copy", async (e) => {
     
     const encryptedText = await encryptData(selectedText);
     e.preventDefault();
-    e.clipboardData.setData("text",encryptedText);
+    e.clipboardData.setData("text/plain",encryptedText);
     console.log("Text copied to clipboard:", encryptedText);
   } catch (error) {
     console.error("Encryption failed :",error);
